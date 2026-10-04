@@ -29,6 +29,7 @@ import {
   costAt,
   earliestDate,
   macrosOf,
+  monthSummary,
   refName,
   refUnit,
   type Index,
@@ -73,6 +74,7 @@ export default function ConsumoPage() {
     .filter(([d]) => monthOf(d) === month)
     .sort(([a], [b]) => b.localeCompare(a));
   const monthTotal = monthDays.reduce((s, [, t]) => s + t, 0);
+  const estimate = useMemo(() => monthSummary(data, month, todayISO()).estimate, [data, month]);
   const dayTotal = dayTotals.get(date) ?? 0;
 
   const dayMacros = rows.reduce(
@@ -169,9 +171,15 @@ export default function ConsumoPage() {
 
         <aside className="rounded-xl border p-4">
           <h2 className="font-medium capitalize">{formatMonth(month)}</h2>
-          <p className="tabular mb-3 text-sm text-muted-foreground">
+          <p className="tabular text-sm text-muted-foreground">
             {formatMoney(monthTotal)} en {monthDays.length} día(s)
           </p>
+          {estimate && estimate.filled.length > 0 && (
+            <p className="tabular text-sm text-muted-foreground">
+              Estimado mes completo: <span className="font-medium text-foreground">{formatMoney(estimate.total)}</span>
+            </p>
+          )}
+          <div className="mb-3" />
           <ul className="flex flex-col text-sm">
             {monthDays.map(([d, t]) => (
               <li key={d}>

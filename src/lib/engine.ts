@@ -343,13 +343,27 @@ export interface RecipeSummaryRow {
   avgPerDay: number;
 }
 
+/** Totales y detalle de un conjunto de días (los registrados, o el mes completo estimado). */
+export interface PeriodSummary {
+  total: number;
+  /** Días sobre los que se promedia. */
+  days: number;
+  foods: FoodSummaryRow[];
+  recipes: RecipeSummaryRow[];
+}
+
+export interface MonthEstimate extends PeriodSummary {
+  /** Días sin registro completados repitiendo en ciclo los días registrados. */
+  filled: { date: ISODate; sourceDate: ISODate; total: number }[];
+  filledTotal: number;
+}
+
 export interface MonthSummary {
   month: MonthKey;
   daysInMonth: number;
   total: number;
   daysRegistered: number;
   avgPerDay: number;
-  projectionAvg: number;
   typicalDay: {
     recipeId: string;
     priceDate: ISODate;
@@ -358,8 +372,10 @@ export interface MonthSummary {
     ok: boolean;
     missingPrice: string[];
   } | null;
-  foods: FoodSummaryRow[];
-  recipes: RecipeSummaryRow[];
+  /** Lo efectivamente registrado. */
+  real: PeriodSummary;
+  /** Mes completo: lo registrado + los días faltantes estimados. null si no hay días registrados. */
+  estimate: MonthEstimate | null;
   daily: { date: ISODate; total: number }[];
   macrosPerDay: Macros;
   macrosIncomplete: string[];
@@ -372,21 +388,64 @@ export function projectionPriceDate(month: MonthKey, today: ISODate): ISODate {
   return last < today ? last : today;
 }
 
+class Accumulator {
+  foodQty = new Map<string, number>();
+  foodCost = new Map<string, number>();
+  recipePortions = new Map<string, number>();
+  total = 0;
+
+  add(exp: Expansion, cost: CostResult) {
+    for (const [id, q] of exp.foods) addTo(this.foodQty, id, q);
+    for (const [id, c] of cost.byFood) addTo(this.foodCost, id, c);
+    for (const [id, p] of exp.recipes) addTo(this.recipePortions, id, p);
+    this.total += cost.total;
+  }
+
+  summarize(index: Index, days: number, month: MonthKey): PeriodSummary {
+    const dim = daysInMonth(month);
+    const refDate = lastDayOfMonth(month);
+    const per = (n: number) => (days ? n / days : 0);
+    const foods: FoodSummaryRow[] = [...this.foodQty.entries()].map(([foodId, qty]) => {
+      const food = index.foods.get(foodId)!;
+      const entry = priceAt(food, refDate) ?? latestPrice(food);
+      const cost = this.foodCost.get(foodId) ?? 0;
+      const avg = per(qty);
+      const pq = entry?.presentationQty ?? null;
+      return {
+        foodId,
+        qty,
+        avgPerDay: avg,
+        cost,
+        avgCostPerDay: per(cost),
+        pct: this.total ? cost / this.total : 0,
+        presentationQty: pq,
+        daysPerPresentation: pq && avg ? pq / avg : null,
+        presentationsPerMonth: pq ? (avg * dim) / pq : null,
+      };
+    });
+    foods.sort((a, b) => b.cost - a.cost);
+    const recipes: RecipeSummaryRow[] = [...this.recipePortions.entries()]
+      .map(([recipeId, portions]) => ({ recipeId, portions, avgPerDay: per(portions) }))
+      .sort((a, b) => b.portions - a.portions);
+    return { total: this.total, days, foods, recipes };
+  }
+}
+
 export function monthSummary(data: AppData, month: MonthKey, today: ISODate): MonthSummary {
   const index = buildIndex(data);
   const dim = daysInMonth(month);
-  const foodQty = new Map<string, number>();
-  const foodCost = new Map<string, number>();
-  const recipePortions = new Map<string, number>();
+  const real = new Accumulator();
+  const full = new Accumulator();
+  const byDate = new Map<ISODate, { exp: Expansion; date: ISODate }[]>();
   const dailyMap = new Map<ISODate, number>();
   const macroTotals = { ...ZERO_MACROS };
   const macrosIncomplete = new Set<string>();
   const uncosted: Consumption[] = [];
-  let total = 0;
 
   for (const c of data.consumptions) {
     if (monthOf(c.date) !== month) continue;
     if (!dailyMap.has(c.date)) dailyMap.set(c.date, 0);
+    if (!byDate.has(c.date)) byDate.set(c.date, []);
     let exp: Expansion;
     try {
       exp = expand(index, c.ref, c.qty);
@@ -394,13 +453,12 @@ export function monthSummary(data: AppData, month: MonthKey, today: ISODate): Mo
       uncosted.push(c);
       continue;
     }
+    byDate.get(c.date)!.push({ exp, date: c.date });
     const cost = costOfExpansion(index, exp, c.date);
     if (!cost.ok) uncosted.push(c);
-    for (const [id, q] of exp.foods) addTo(foodQty, id, q);
-    for (const [id, c2] of cost.byFood) addTo(foodCost, id, c2);
-    for (const [id, p] of exp.recipes) addTo(recipePortions, id, p);
+    real.add(exp, cost);
+    full.add(exp, cost);
     dailyMap.set(c.date, dailyMap.get(c.date)! + cost.total);
-    total += cost.total;
     const m = macrosOfExpansion(index, exp);
     m.incomplete.forEach((id) => macrosIncomplete.add(id));
     macroTotals.kcal += m.macros.kcal;
@@ -409,37 +467,35 @@ export function monthSummary(data: AppData, month: MonthKey, today: ISODate): Mo
     macroTotals.fat += m.macros.fat;
   }
 
-  const daysRegistered = dailyMap.size;
-  const avgPerDay = daysRegistered ? total / daysRegistered : 0;
-  const refDate = lastDayOfMonth(month);
+  const registered = [...dailyMap.keys()].sort();
+  const daysRegistered = registered.length;
 
-  const foods: FoodSummaryRow[] = [...foodQty.entries()].map(([foodId, qty]) => {
-    const food = index.foods.get(foodId)!;
-    const entry = priceAt(food, refDate) ?? latestPrice(food);
-    const cost = foodCost.get(foodId) ?? 0;
-    const avg = daysRegistered ? qty / daysRegistered : 0;
-    const pq = entry?.presentationQty ?? null;
-    return {
-      foodId,
-      qty,
-      avgPerDay: avg,
-      cost,
-      avgCostPerDay: daysRegistered ? cost / daysRegistered : 0,
-      pct: total ? cost / total : 0,
-      presentationQty: pq,
-      daysPerPresentation: pq && avg ? pq / avg : null,
-      presentationsPerMonth: pq ? (avg * dim) / pq : null,
+  // Estimado: cada día sin registro repite, en ciclo, los días registrados (en orden de fecha).
+  // Se costea con el precio vigente en el día estimado; si no hay, con el del día original.
+  let estimate: MonthEstimate | null = null;
+  if (daysRegistered > 0) {
+    const filled: MonthEstimate["filled"] = [];
+    const missing = Array.from(
+      { length: dim },
+      (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`,
+    ).filter((d) => !dailyMap.has(d));
+    missing.forEach((date, i) => {
+      const sourceDate = registered[i % daysRegistered];
+      let dayTotal = 0;
+      for (const item of byDate.get(sourceDate)!) {
+        let cost = costOfExpansion(index, item.exp, date);
+        if (!cost.ok) cost = costOfExpansion(index, item.exp, item.date);
+        full.add(item.exp, cost);
+        dayTotal += cost.total;
+      }
+      filled.push({ date, sourceDate, total: dayTotal });
+    });
+    estimate = {
+      ...full.summarize(index, dim, month),
+      filled,
+      filledTotal: filled.reduce((s, f) => s + f.total, 0),
     };
-  });
-  foods.sort((a, b) => b.cost - a.cost);
-
-  const recipes: RecipeSummaryRow[] = [...recipePortions.entries()]
-    .map(([recipeId, portions]) => ({
-      recipeId,
-      portions,
-      avgPerDay: daysRegistered ? portions / daysRegistered : 0,
-    }))
-    .sort((a, b) => b.portions - a.portions);
+  }
 
   let typicalDay: MonthSummary["typicalDay"] = null;
   const typicalId = data.settings.typicalDayRecipeId;
@@ -465,16 +521,13 @@ export function monthSummary(data: AppData, month: MonthKey, today: ISODate): Mo
   return {
     month,
     daysInMonth: dim,
-    total,
+    total: real.total,
     daysRegistered,
-    avgPerDay,
-    projectionAvg: avgPerDay * dim,
+    avgPerDay: daysRegistered ? real.total / daysRegistered : 0,
     typicalDay,
-    foods,
-    recipes,
-    daily: [...dailyMap.entries()]
-      .map(([date, t]) => ({ date, total: t }))
-      .sort((a, b) => a.date.localeCompare(b.date)),
+    real: real.summarize(index, daysRegistered, month),
+    estimate,
+    daily: registered.map((date) => ({ date, total: dailyMap.get(date)! })),
     macrosPerDay: {
       kcal: macroTotals.kcal / div,
       protein: macroTotals.protein / div,
@@ -518,35 +571,38 @@ export function monthlyTotals(
 
 export interface ShoppingRow {
   foodId: string;
+  /** Cantidad estimada para el mes completo. */
   qty: number;
   presentation: string | null;
   presentationQty: number | null;
   presentations: number | null;
   /** Costo de las presentaciones enteras a comprar. */
   cost: number | null;
-  /** Costo de lo efectivamente consumido. */
-  consumedCost: number | null;
+  /** Costo de lo que se estima consumir (según el precio de cada día). */
+  consumedCost: number;
 }
 
 export interface ShoppingList {
-  recipeId: string;
-  days: number;
+  daysRegistered: number;
+  daysEstimated: number;
   priceDate: ISODate;
   rows: ShoppingRow[];
   total: number;
   consumedTotal: number;
 }
 
+/**
+ * Lista de compras del mes a partir del estimado (lo registrado + los días faltantes
+ * repitiendo en ciclo los registrados). null si el mes no tiene días registrados.
+ */
 export function shoppingList(data: AppData, month: MonthKey, today: ISODate): ShoppingList | null {
+  const summary = monthSummary(data, month, today);
+  const estimate = summary.estimate;
+  if (!estimate) return null;
   const index = buildIndex(data);
-  const recipeId = data.settings.typicalDayRecipeId;
-  if (!recipeId || !index.recipes.has(recipeId)) return null;
-  const days = daysInMonth(month);
   const priceDate = projectionPriceDate(month, today);
-  const exp = expand(index, { kind: "recipe", id: recipeId }, days);
   let total = 0;
-  let consumedTotal = 0;
-  const rows: ShoppingRow[] = [...exp.foods.entries()].map(([foodId, qty]) => {
+  const rows: ShoppingRow[] = estimate.foods.map(({ foodId, qty, cost: consumedCost }) => {
     const food = index.foods.get(foodId)!;
     const entry = priceAt(food, priceDate) ?? latestPrice(food);
     if (!entry) {
@@ -557,15 +613,13 @@ export function shoppingList(data: AppData, month: MonthKey, today: ISODate): Sh
         presentationQty: null,
         presentations: null,
         cost: null,
-        consumedCost: null,
+        consumedCost,
       };
     }
     // Tolerancia para no redondear 2.0000000001 a 3.
     const presentations = Math.ceil(qty / entry.presentationQty - 1e-9);
     const cost = presentations * entry.price;
-    const consumedCost = qty * unitCost(entry);
     total += cost;
-    consumedTotal += consumedCost;
     return {
       foodId,
       qty,
@@ -577,5 +631,12 @@ export function shoppingList(data: AppData, month: MonthKey, today: ISODate): Sh
     };
   });
   rows.sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
-  return { recipeId, days, priceDate, rows, total, consumedTotal };
+  return {
+    daysRegistered: summary.daysRegistered,
+    daysEstimated: estimate.filled.length,
+    priceDate,
+    rows,
+    total,
+    consumedTotal: estimate.total,
+  };
 }

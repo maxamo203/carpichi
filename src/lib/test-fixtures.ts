@@ -26,8 +26,8 @@ const recipe = (id: string, name: string, yields: number, items: [Ref, number][]
   items: items.map(([ref, qty], i) => ({ id: `${id}-i${i}`, ref, qty })),
 });
 
-/** Datos de ejemplo tomados del Excel original. */
-export function seedData(): AppData {
+/** Datos fijos para los tests del motor (independientes de public/datos-ejemplo.json). */
+export function sampleData(): AppData {
   const foods: Food[] = [
     food("f-huevos", "Huevos", "unidad", "Maple", 30, 6000),
     food("f-avena", "Avena", "g", "Paquete 500 g", 500, 2000),

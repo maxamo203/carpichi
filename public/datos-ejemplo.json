@@ -1,0 +1,527 @@
+{
+  "app": "trackeo-alimentos",
+  "version": 1,
+  "level": "all",
+  "exportedAt": "2026-10-04T03:38:41.714Z",
+  "data": {
+    "foods": [
+      {
+        "id": "f-huevos",
+        "name": "Huevos",
+        "unit": "unidad",
+        "prices": [
+          {
+            "id": "f-huevos-p1",
+            "date": "2026-10-01",
+            "presentation": "Maple",
+            "presentationQty": 30,
+            "price": 6000
+          }
+        ]
+      },
+      {
+        "id": "f-avena",
+        "name": "Avena",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-avena-p1",
+            "date": "2026-10-01",
+            "presentation": "Paquete 500 g",
+            "presentationQty": 500,
+            "price": 2000
+          }
+        ]
+      },
+      {
+        "id": "f-leche",
+        "name": "Leche",
+        "unit": "ml",
+        "prices": [
+          {
+            "id": "f-leche-p1",
+            "date": "2026-10-01",
+            "presentation": "Sachet 1 L",
+            "presentationQty": 1000,
+            "price": 2300
+          }
+        ]
+      },
+      {
+        "id": "f-nesquik",
+        "name": "Nesquik",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-nesquik-p1",
+            "date": "2026-10-01",
+            "presentation": "Paquete 360 g",
+            "presentationQty": 360,
+            "price": 5000
+          }
+        ]
+      },
+      {
+        "id": "f-pollo",
+        "name": "Pollo",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-pollo-p1",
+            "date": "2026-10-01",
+            "presentation": "1 kg",
+            "presentationQty": 1000,
+            "price": 9500
+          }
+        ]
+      },
+      {
+        "id": "f-atun",
+        "name": "Atún",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-atun-p1",
+            "date": "2026-10-01",
+            "presentation": "Lata 160 g",
+            "presentationQty": 160,
+            "price": 2500
+          }
+        ]
+      },
+      {
+        "id": "f-arroz",
+        "name": "Arroz",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-arroz-p1",
+            "date": "2026-10-01",
+            "presentation": "Paquete 1 kg",
+            "presentationQty": 1000,
+            "price": 1500
+          }
+        ]
+      },
+      {
+        "id": "f-leche-polvo",
+        "name": "Leche en polvo",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-leche-polvo-p1",
+            "date": "2026-10-01",
+            "presentation": "Bolsa 800 g",
+            "presentationQty": 800,
+            "price": 12000
+          }
+        ]
+      },
+      {
+        "id": "f-yogur",
+        "name": "Yogur original",
+        "unit": "unidad",
+        "prices": [
+          {
+            "id": "f-yogur-p1",
+            "date": "2026-10-01",
+            "presentation": "Pote",
+            "presentationQty": 1,
+            "price": 2500
+          }
+        ]
+      },
+      {
+        "id": "f-pasas",
+        "name": "Pasas de uva",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-pasas-p1",
+            "date": "2026-10-01",
+            "presentation": "Bolsa 1 kg",
+            "presentationQty": 1000,
+            "price": 5000
+          }
+        ]
+      },
+      {
+        "id": "f-banana",
+        "name": "Banana",
+        "unit": "unidad",
+        "prices": [
+          {
+            "id": "f-banana-p1",
+            "date": "2026-10-01",
+            "presentation": "1 kg (~5 u.)",
+            "presentationQty": 5,
+            "price": 2500
+          }
+        ]
+      },
+      {
+        "id": "f-manzana",
+        "name": "Manzana",
+        "unit": "unidad",
+        "prices": [
+          {
+            "id": "f-manzana-p1",
+            "date": "2026-10-01",
+            "presentation": "1 kg (~6 u.)",
+            "presentationQty": 6,
+            "price": 3000
+          }
+        ]
+      },
+      {
+        "id": "f-proteina",
+        "name": "Proteína",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-proteina-p1",
+            "date": "2026-10-01",
+            "presentation": "Doypack 3 kg",
+            "presentationQty": 3000,
+            "price": 274000
+          }
+        ]
+      },
+      {
+        "id": "f-creatina",
+        "name": "Creatina",
+        "unit": "g",
+        "prices": [
+          {
+            "id": "f-creatina-p1",
+            "date": "2026-10-01",
+            "presentation": "Pote 1 kg",
+            "presentationQty": 1000,
+            "price": 72300
+          }
+        ]
+      }
+    ],
+    "recipes": [
+      {
+        "id": "r-yogur-casero",
+        "name": "Yogur casero",
+        "yields": 6,
+        "items": [
+          {
+            "id": "r-yogur-casero-i0",
+            "ref": {
+              "kind": "food",
+              "id": "f-leche"
+            },
+            "qty": 1000
+          },
+          {
+            "id": "r-yogur-casero-i1",
+            "ref": {
+              "kind": "food",
+              "id": "f-leche-polvo"
+            },
+            "qty": 50
+          },
+          {
+            "id": "r-yogur-casero-i2",
+            "ref": {
+              "kind": "food",
+              "id": "f-yogur"
+            },
+            "qty": 1
+          }
+        ]
+      },
+      {
+        "id": "r-pollo-arroz",
+        "name": "Pollo con arroz",
+        "yields": 1,
+        "items": [
+          {
+            "id": "r-pollo-arroz-i0",
+            "ref": {
+              "kind": "food",
+              "id": "f-pollo"
+            },
+            "qty": 470
+          },
+          {
+            "id": "r-pollo-arroz-i1",
+            "ref": {
+              "kind": "food",
+              "id": "f-arroz"
+            },
+            "qty": 115
+          }
+        ]
+      },
+      {
+        "id": "r-desayuno",
+        "name": "Desayuno huevos",
+        "yields": 1,
+        "items": [
+          {
+            "id": "r-desayuno-i0",
+            "ref": {
+              "kind": "food",
+              "id": "f-huevos"
+            },
+            "qty": 6
+          },
+          {
+            "id": "r-desayuno-i1",
+            "ref": {
+              "kind": "food",
+              "id": "f-avena"
+            },
+            "qty": 50
+          },
+          {
+            "id": "r-desayuno-i2",
+            "ref": {
+              "kind": "food",
+              "id": "f-leche"
+            },
+            "qty": 200
+          },
+          {
+            "id": "r-desayuno-i3",
+            "ref": {
+              "kind": "food",
+              "id": "f-nesquik"
+            },
+            "qty": 15
+          }
+        ]
+      },
+      {
+        "id": "r-merienda",
+        "name": "Merienda yogurt",
+        "yields": 1,
+        "items": [
+          {
+            "id": "r-merienda-i0",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-yogur-casero"
+            },
+            "qty": 1
+          },
+          {
+            "id": "r-merienda-i1",
+            "ref": {
+              "kind": "food",
+              "id": "f-proteina"
+            },
+            "qty": 10
+          },
+          {
+            "id": "r-merienda-i2",
+            "ref": {
+              "kind": "food",
+              "id": "f-avena"
+            },
+            "qty": 30
+          },
+          {
+            "id": "r-merienda-i3",
+            "ref": {
+              "kind": "food",
+              "id": "f-banana"
+            },
+            "qty": 1
+          }
+        ]
+      },
+      {
+        "id": "r-atun-arroz",
+        "name": "Atún con arroz",
+        "yields": 1,
+        "items": [
+          {
+            "id": "r-atun-arroz-i0",
+            "ref": {
+              "kind": "food",
+              "id": "f-atun"
+            },
+            "qty": 90
+          },
+          {
+            "id": "r-atun-arroz-i1",
+            "ref": {
+              "kind": "food",
+              "id": "f-arroz"
+            },
+            "qty": 115
+          }
+        ]
+      },
+      {
+        "id": "r-dia-entreno",
+        "name": "Día entreno (full pollo)",
+        "yields": 1,
+        "items": [
+          {
+            "id": "r-dia-entreno-i0",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-desayuno"
+            },
+            "qty": 1
+          },
+          {
+            "id": "r-dia-entreno-i1",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-pollo-arroz"
+            },
+            "qty": 1
+          },
+          {
+            "id": "r-dia-entreno-i2",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-merienda"
+            },
+            "qty": 1
+          },
+          {
+            "id": "80159e7e-3ff1-483d-b1d1-cceb86c2b94f",
+            "ref": {
+              "kind": "recipe",
+              "id": "9f54993f-1184-4956-9f6e-2113d498dc83"
+            },
+            "qty": 1
+          },
+          {
+            "id": "caaec611-9dec-4084-9f63-e7ed2fdb7d09",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-pollo-arroz"
+            },
+            "qty": 1
+          }
+        ]
+      },
+      {
+        "id": "9f54993f-1184-4956-9f6e-2113d498dc83",
+        "name": "Colacion entreno",
+        "yields": 1,
+        "items": [
+          {
+            "id": "a71a1ba4-0f6c-403f-8632-30f6561b549d",
+            "ref": {
+              "kind": "food",
+              "id": "f-proteina"
+            },
+            "qty": 30
+          },
+          {
+            "id": "21ee1663-f209-40bf-abd0-cee4160a0203",
+            "ref": {
+              "kind": "food",
+              "id": "f-leche"
+            },
+            "qty": 250
+          },
+          {
+            "id": "a3812abb-ac9f-42d0-afdf-4daa7a4914c1",
+            "ref": {
+              "kind": "food",
+              "id": "f-creatina"
+            },
+            "qty": 5
+          },
+          {
+            "id": "9b012b21-1e1e-480d-bce0-5b416679cefb",
+            "ref": {
+              "kind": "food",
+              "id": "f-pasas"
+            },
+            "qty": 40
+          },
+          {
+            "id": "17be0de2-c6ea-45bd-bcc7-be65dea5e96c",
+            "ref": {
+              "kind": "food",
+              "id": "f-manzana"
+            },
+            "qty": 1
+          }
+        ]
+      },
+      {
+        "id": "a6d876cb-c2f9-4711-8792-0f893aa97dd5",
+        "name": "Dia entreno (full atun)",
+        "yields": 1,
+        "items": [
+          {
+            "id": "9ec0d544-6cd4-40bf-a7f7-f3c0ad4a6751",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-desayuno"
+            },
+            "qty": 1
+          },
+          {
+            "id": "63c9dba1-c129-4079-a63a-af2b0b94c972",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-atun-arroz"
+            },
+            "qty": 1
+          },
+          {
+            "id": "b2037388-e814-48b8-abf8-a58d772e808a",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-merienda"
+            },
+            "qty": 1
+          },
+          {
+            "id": "330f665f-4181-4ea2-800a-28a2a2ef7aa2",
+            "ref": {
+              "kind": "recipe",
+              "id": "9f54993f-1184-4956-9f6e-2113d498dc83"
+            },
+            "qty": 1
+          },
+          {
+            "id": "456895fd-7412-4837-9e8d-d986fa42cce6",
+            "ref": {
+              "kind": "recipe",
+              "id": "r-atun-arroz"
+            },
+            "qty": 1
+          }
+        ]
+      }
+    ],
+    "consumptions": [
+      {
+        "date": "2026-10-01",
+        "ref": {
+          "kind": "recipe",
+          "id": "r-dia-entreno"
+        },
+        "qty": 1,
+        "id": "269855bc-612d-4502-976b-0c294e1d2d65"
+      },
+      {
+        "date": "2026-10-02",
+        "ref": {
+          "kind": "recipe",
+          "id": "a6d876cb-c2f9-4711-8792-0f893aa97dd5"
+        },
+        "qty": 1,
+        "id": "f98fd07c-d572-4bf4-b329-2b89dc817e6e"
+      }
+    ],
+    "settings": {
+      "typicalDayRecipeId": "r-merienda"
+    }
+  }
+}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { MoneyBarChart, MoneyHBarChart } from "@/components/charts";
 import { EmptyState, MonthPicker, NativeSelect, PageHeader, Stat } from "@/components/common";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
   unitLabel,
 } from "@/lib/format";
 import { useData, useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 export default function ResumenPage() {
   const data = useData();
@@ -37,13 +38,26 @@ export default function ResumenPage() {
   const summary = useMemo(() => monthSummary(data, month, today), [data, month, today]);
   const history = useMemo(() => monthlyTotals(data, month, 12), [data, month]);
 
+  const [view, setView] = useState<"estimate" | "real">("estimate");
+  const period = view === "estimate" && summary.estimate ? summary.estimate : summary.real;
+  const isEstimate = period === summary.estimate;
+
   const dailyChart = useMemo(() => {
-    const byDate = new Map(summary.daily.map((d) => [d.date, d.total]));
+    const real = new Map(summary.daily.map((d) => [d.date, d.total]));
+    const filled = new Map(summary.estimate?.filled.map((f) => [f.date, f]) ?? []);
     return Array.from({ length: daysInMonth(month) }, (_, i) => {
       const date = `${month}-${String(i + 1).padStart(2, "0")}`;
-      return { label: String(i + 1), value: byDate.get(date) ?? 0, tooltipLabel: formatDate(date) };
+      const est = filled.get(date);
+      return {
+        label: String(i + 1),
+        value: real.get(date) ?? 0,
+        estimated: est?.total ?? 0,
+        tooltipLabel: est
+          ? `${formatDate(date)} · estimado (repite ${formatDate(est.sourceDate).slice(0, 5)})`
+          : formatDate(date),
+      };
     });
-  }, [summary.daily, month]);
+  }, [summary.daily, summary.estimate, month]);
 
   if (data.foods.length === 0) {
     return (
@@ -73,9 +87,15 @@ export default function ResumenPage() {
         <Stat label="Días registrados" value={summary.daysRegistered} hint={`de ${summary.daysInMonth}`} />
         <Stat label="Promedio por día" value={formatMoney(summary.avgPerDay)} />
         <Stat
-          label="Proyección (promedio)"
-          value={formatMoney(summary.projectionAvg)}
-          hint={`promedio × ${summary.daysInMonth} días`}
+          label="Estimado del mes"
+          value={summary.estimate ? formatMoney(summary.estimate.total) : "—"}
+          hint={
+            summary.estimate
+              ? summary.estimate.filled.length
+                ? `+ ${formatMoney(summary.estimate.filledTotal)} en ${summary.estimate.filled.length} día(s) sin cargar, repitiendo los registrados`
+                : "mes completo registrado"
+              : "cargá al menos un día"
+          }
         />
         <div className="col-span-2 rounded-xl border bg-card p-4 lg:col-span-1">
           <div className="text-xs font-medium text-muted-foreground uppercase">Proyección (día tipo)</div>
@@ -139,20 +159,28 @@ export default function ResumenPage() {
         </Card>
       </div>
 
-      {summary.foods.length > 0 ? (
+      {summary.real.foods.length > 0 ? (
         <>
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Detalle por alimento</CardTitle>
+              <CardDescription>
+                {isEstimate
+                  ? `Mes completo: lo registrado + ${summary.estimate!.filled.length} día(s) estimados. Promedios sobre ${summary.daysInMonth} días.`
+                  : `Solo lo registrado. Promedios sobre ${summary.daysRegistered} día(s).`}
+              </CardDescription>
+              <CardAction>
+                <ViewToggle value={isEstimate ? "estimate" : "real"} onChange={setView} />
+              </CardAction>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Alimento</TableHead>
-                    <TableHead className="text-right">Consumo del mes</TableHead>
+                    <TableHead className="text-right">{isEstimate ? "Consumo estimado" : "Consumo del mes"}</TableHead>
                     <TableHead className="text-right">Prom. por día</TableHead>
-                    <TableHead className="text-right">Gasto del mes</TableHead>
+                    <TableHead className="text-right">{isEstimate ? "Gasto estimado" : "Gasto del mes"}</TableHead>
                     <TableHead className="text-right">Gasto prom./día</TableHead>
                     <TableHead className="text-right">% del gasto</TableHead>
                     <TableHead className="text-right">Días que dura 1 present.</TableHead>
@@ -160,7 +188,7 @@ export default function ResumenPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {summary.foods.map((row) => {
+                  {period.foods.map((row) => {
                     const ref = { kind: "food" as const, id: row.foodId };
                     const u = unitLabel(refUnit(index, ref));
                     return (
@@ -188,11 +216,11 @@ export default function ResumenPage() {
           <div className="mt-6 grid gap-4 lg:grid-cols-[3fr_2fr]">
             <Card>
               <CardHeader>
-                <CardTitle>Top alimentos por gasto</CardTitle>
+                <CardTitle>Top alimentos por gasto{isEstimate && " (estimado)"}</CardTitle>
               </CardHeader>
               <CardContent>
                 <MoneyHBarChart
-                  data={summary.foods.slice(0, 10).map((row) => ({
+                  data={period.foods.slice(0, 10).map((row) => ({
                     label: refName(index, { kind: "food", id: row.foodId }),
                     value: row.cost,
                     tooltipLabel: `${refName(index, { kind: "food", id: row.foodId })} · ${formatPct(row.pct)}`,
@@ -206,7 +234,7 @@ export default function ResumenPage() {
                   <CardTitle>Macros promedio por día</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-4 gap-2 text-center">
-                  {summary.macrosIncomplete.length === summary.foods.length ? (
+                  {summary.macrosIncomplete.length === summary.real.foods.length ? (
                     <p className="col-span-4 text-left text-sm text-muted-foreground">
                       Cargá los macros de tus alimentos en{" "}
                       <Link className="underline" href="/alimentos">Alimentos</Link> para ver calorías y nutrientes.
@@ -237,10 +265,10 @@ export default function ResumenPage() {
                   )}
                 </CardContent>
               </Card>
-              {summary.recipes.length > 0 && (
+              {period.recipes.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Recetas consumidas</CardTitle>
+                    <CardTitle>Recetas consumidas{isEstimate && " (estimado)"}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -252,7 +280,7 @@ export default function ResumenPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {summary.recipes.map((row) => (
+                        {period.recipes.map((row) => (
                           <TableRow key={row.recipeId}>
                             <TableCell>{refName(index, { kind: "recipe", id: row.recipeId })}</TableCell>
                             <TableCell className="tabular text-right">{formatQty(row.portions)}</TableCell>
@@ -276,5 +304,36 @@ export default function ResumenPage() {
         </div>
       )}
     </>
+  );
+}
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: "estimate" | "real";
+  onChange: (v: "estimate" | "real") => void;
+}) {
+  const options = [
+    { value: "estimate", label: "Mes completo (estimado)" },
+    { value: "real", label: "Registrado" },
+  ] as const;
+  return (
+    <div className="inline-flex rounded-lg bg-muted p-[3px] text-xs">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "rounded-md px-2.5 py-1 font-medium whitespace-nowrap text-muted-foreground transition-colors",
+            value === o.value && "bg-background text-foreground shadow-sm",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }

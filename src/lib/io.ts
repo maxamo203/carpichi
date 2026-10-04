@@ -30,6 +30,18 @@ export type ParseResult =
   | { ok: true; data: AppData; level: ExportLevel; exportedAt: string }
   | { ok: false; errors: string[] };
 
+/** Descarga y valida los datos de ejemplo servidos desde public/datos-ejemplo.json. */
+export async function loadExampleData(): Promise<ParseResult> {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  try {
+    const res = await fetch(`${basePath}/datos-ejemplo.json`, { cache: "no-store" });
+    if (!res.ok) return { ok: false, errors: [`No se pudo descargar el ejemplo (HTTP ${res.status})`] };
+    return parseImport(await res.text());
+  } catch {
+    return { ok: false, errors: ["No se pudo descargar el ejemplo"] };
+  }
+}
+
 /** Parsea y valida un archivo exportado. Lo que el archivo no incluye queda vacío. */
 export function parseImport(text: string): ParseResult {
   let json: unknown;

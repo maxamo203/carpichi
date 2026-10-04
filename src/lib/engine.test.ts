@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buildIndex,
@@ -14,7 +15,7 @@ import {
   wouldCreateCycle,
 } from "./engine";
 import { buildExport, parseImport } from "./io";
-import { seedData } from "./seed";
+import { sampleData } from "./test-fixtures";
 import type { AppData, Food, Recipe } from "./types";
 
 const r = (id: string) => ({ kind: "recipe" as const, id });
@@ -49,11 +50,11 @@ describe("precios por fecha", () => {
   });
 });
 
-describe("datos del Excel", () => {
-  const data = seedData();
+describe("datos de prueba", () => {
+  const data = sampleData();
   const index = buildIndex(data);
 
-  it("costos por porción coinciden con la hoja Recetas", () => {
+  it("costos por porción", () => {
     expect(costAt(index, r("r-yogur-casero"), 1, "2026-10-01").total).toBeCloseTo(925);
     expect(costAt(index, r("r-pollo-arroz"), 1, "2026-10-01").total).toBeCloseTo(4637.5);
     expect(costAt(index, r("r-desayuno"), 1, "2026-10-01").total).toBeCloseTo(2068.33, 2);
@@ -61,18 +62,60 @@ describe("datos del Excel", () => {
     expect(costAt(index, r("r-atun-arroz"), 1, "2026-10-01").total).toBeCloseTo(1578.75);
   });
 
-  it("el día 01/10 suma lo mismo que el Excel ($15.062)", () => {
+  it("el día 01/10 suma $15.062", () => {
     const s = monthSummary(data, "2026-10", "2026-10-03");
     expect(Math.round(s.total)).toBe(15062);
     expect(s.daysRegistered).toBe(1);
-    expect(s.projectionAvg).toBeCloseTo(s.total * 31);
-    const pollo = s.foods.find((x) => x.foodId === "f-pollo")!;
+    // Con un solo día registrado, el estimado repite ese día todo el mes.
+    expect(Math.round(s.estimate!.total)).toBe(466935);
+    const pollo = s.real.foods.find((x) => x.foodId === "f-pollo")!;
     expect(pollo.qty).toBe(470);
     expect(pollo.cost).toBeCloseTo(4465);
     expect(pollo.daysPerPresentation).toBeCloseTo(1000 / 470);
-    const lechePolvo = s.foods.find((x) => x.foodId === "f-leche-polvo")!;
+    const lechePolvo = s.real.foods.find((x) => x.foodId === "f-leche-polvo")!;
     expect(lechePolvo.qty).toBeCloseTo(50 / 6);
     expect(s.uncosted).toEqual([]);
+  });
+
+  it("el estimado completa los días faltantes repitiendo en ciclo los registrados", () => {
+    const two = structuredClone(data);
+    // Día 2: solo 100 g de pollo ($950).
+    two.consumptions.push({ id: "d2", date: "2026-10-02", ref: f("f-pollo"), qty: 100 });
+    const s = monthSummary(two, "2026-10", "2026-10-03");
+    const est = s.estimate!;
+    expect(est.filled).toHaveLength(29);
+    // Faltan 03..31: alternan día 1, día 2, día 1, ...
+    expect(est.filled[0]).toMatchObject({ date: "2026-10-03", sourceDate: "2026-10-01" });
+    expect(est.filled[1]).toMatchObject({ date: "2026-10-04", sourceDate: "2026-10-02" });
+    expect(est.filled[28]).toMatchObject({ date: "2026-10-31", sourceDate: "2026-10-01" });
+    // 29 días faltantes = 15 veces el día 1 + 14 veces el día 2.
+    const day1 = s.daily[0].total;
+    expect(est.filledTotal).toBeCloseTo(15 * day1 + 14 * 950);
+    expect(est.total).toBeCloseTo(s.total + est.filledTotal);
+    const pollo = est.foods.find((x) => x.foodId === "f-pollo")!;
+    expect(pollo.qty).toBeCloseTo(470 * 16 + 100 * 15);
+    expect(pollo.avgPerDay).toBeCloseTo(pollo.qty / 31);
+    expect(pollo.presentationsPerMonth).toBeCloseTo(pollo.qty / 1000);
+    expect(est.foods.reduce((sum, r) => sum + r.pct, 0)).toBeCloseTo(1);
+  });
+
+  it("los días estimados usan el precio vigente en su fecha", () => {
+    const d = structuredClone(data);
+    d.consumptions = [{ id: "x", date: "2026-10-01", ref: f("f-pollo"), qty: 1000 }];
+    d.foods.find((x) => x.id === "f-pollo")!.prices.push({
+      id: "p2",
+      date: "2026-10-16",
+      presentation: "1 kg",
+      presentationQty: 1000,
+      price: 12000,
+    });
+    const est = monthSummary(d, "2026-10", "2026-10-03").estimate!;
+    // 02..15 a $9.500 (14 días) y 16..31 a $12.000 (16 días).
+    expect(est.filledTotal).toBeCloseTo(14 * 9500 + 16 * 12000);
+  });
+
+  it("sin días registrados no hay estimado", () => {
+    expect(monthSummary(data, "2026-11", "2026-10-03").estimate).toBeNull();
   });
 
   it("el día tipo proyecta con el calendario del mes", () => {
@@ -94,14 +137,25 @@ describe("datos del Excel", () => {
     expect(earliestDate(index, r("r-dia-entreno"))).toBe("2026-10-01");
   });
 
-  it("lista de compras redondea presentaciones hacia arriba", () => {
-    const list = shoppingList(data, "2026-10", "2026-10-03")!;
+  it("lista de compras: estimado del mes, presentaciones redondeadas hacia arriba", () => {
+    // No depende de la receta de día tipo: sale de los días registrados.
+    const noTypical = { ...data, settings: {} };
+    const list = shoppingList(noTypical, "2026-10", "2026-10-03")!;
+    expect(list.daysRegistered).toBe(1);
+    expect(list.daysEstimated).toBe(30);
     const pollo = list.rows.find((x) => x.foodId === "f-pollo")!;
     expect(pollo.qty).toBe(470 * 31);
     expect(pollo.presentations).toBe(15);
     expect(pollo.cost).toBe(15 * 9500);
+    expect(pollo.consumedCost).toBeCloseTo(470 * 31 * 9.5);
     const huevos = list.rows.find((x) => x.foodId === "f-huevos")!;
     expect(huevos.presentations).toBe(Math.ceil((6 * 31) / 30));
+    expect(list.consumedTotal).toBeCloseTo(monthSummary(data, "2026-10", "2026-10-03").estimate!.total);
+    expect(list.total).toBeGreaterThanOrEqual(list.consumedTotal);
+  });
+
+  it("lista de compras vacía si el mes no tiene días registrados", () => {
+    expect(shoppingList(data, "2026-11", "2026-10-03")).toBeNull();
   });
 
   it("desvincular reemplaza la receta por sus ingredientes directos", () => {
@@ -145,9 +199,9 @@ describe("ciclos", () => {
   });
 
   it("Merienda yogurt no puede ir dentro de Yogur casero", () => {
-    const seedIndex = buildIndex(seedData());
-    expect(wouldCreateCycle(seedIndex, "r-yogur-casero", r("r-merienda"))).toBe(true);
-    expect(wouldCreateCycle(seedIndex, "r-merienda", r("r-yogur-casero"))).toBe(false);
+    const sampleIndex = buildIndex(sampleData());
+    expect(wouldCreateCycle(sampleIndex, "r-yogur-casero", r("r-merienda"))).toBe(true);
+    expect(wouldCreateCycle(sampleIndex, "r-merienda", r("r-yogur-casero"))).toBe(false);
   });
 });
 
@@ -195,7 +249,13 @@ describe("macros", () => {
 });
 
 describe("export / import", () => {
-  const data = seedData();
+  const data = sampleData();
+
+  it("public/datos-ejemplo.json es un archivo importable", () => {
+    const text = readFileSync(new URL("../../public/datos-ejemplo.json", import.meta.url), "utf8");
+    const parsed = parseImport(text);
+    expect(parsed.ok ? [] : parsed.errors).toEqual([]);
+  });
 
   it("round-trip completo", () => {
     const file = buildExport(data, "all");

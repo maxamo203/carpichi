@@ -8,9 +8,8 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { todayISO } from "@/lib/dates";
-import { buildExport, exportFileName, LEVEL_LABELS, parseImport } from "@/lib/io";
+import { buildExport, exportFileName, LEVEL_LABELS, loadExampleData, parseImport } from "@/lib/io";
 import { exportLevels, type ExportLevel } from "@/lib/schema";
-import { seedData } from "@/lib/seed";
 import { useData, useStore } from "@/lib/store";
 import { EMPTY_DATA, type AppData } from "@/lib/types";
 
@@ -27,7 +26,7 @@ function download(data: AppData, level: ExportLevel) {
 
 type Pending =
   | { kind: "import"; data: AppData; level: ExportLevel; fileName: string }
-  | { kind: "seed" }
+  | { kind: "example"; data: AppData }
   | { kind: "clear" };
 
 export default function DatosPage() {
@@ -36,6 +35,7 @@ export default function DatosPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [loadingExample, setLoadingExample] = useState(false);
 
   const counts = `${data.foods.length} alimentos · ${data.recipes.length} recetas · ${data.consumptions.length} consumos`;
 
@@ -48,6 +48,19 @@ export default function DatosPage() {
     }
     setErrors([]);
     setPending({ kind: "import", data: result.data, level: result.level, fileName: file.name });
+  };
+
+  const onExample = async () => {
+    setLoadingExample(true);
+    const result = await loadExampleData();
+    setLoadingExample(false);
+    if (!result.ok) {
+      setErrors(result.errors);
+      toast.error("No se pudieron cargar los datos de ejemplo");
+      return;
+    }
+    setErrors([]);
+    setPending({ kind: "example", data: result.data });
   };
 
   const confirmText = (() => {
@@ -65,10 +78,10 @@ export default function DatosPage() {
         description: `Se reemplazan TODOS los datos actuales (${counts}) por los del archivo: ${d.foods.length} alimentos, ${d.recipes.length} recetas, ${d.consumptions.length} consumos.${lost}`,
       };
     }
-    if (pending.kind === "seed")
+    if (pending.kind === "example")
       return {
         title: "¿Cargar datos de ejemplo?",
-        description: `Se reemplazan todos los datos actuales (${counts}) por los del Excel de ejemplo.`,
+        description: `Se reemplazan todos los datos actuales (${counts}) por los de ejemplo: ${pending.data.foods.length} alimentos, ${pending.data.recipes.length} recetas, ${pending.data.consumptions.length} consumos.`,
       };
     return {
       title: "¿Borrar todos los datos?",
@@ -137,10 +150,10 @@ export default function DatosPage() {
         <Card>
           <CardHeader>
             <CardTitle>Datos de ejemplo</CardTitle>
-            <CardDescription>Alimentos, recetas y un día de consumo tomados del Excel original.</CardDescription>
+            <CardDescription>Alimentos, recetas y algunos días de consumo para probar la app.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" onClick={() => setPending({ kind: "seed" })}>
+            <Button variant="outline" disabled={loadingExample} onClick={() => void onExample()}>
               <SparklesIcon /> Cargar ejemplo
             </Button>
           </CardContent>
@@ -169,10 +182,10 @@ export default function DatosPage() {
         onConfirm={() => {
           if (!pending) return;
           if (pending.kind === "import") replaceAll(pending.data);
-          else if (pending.kind === "seed") replaceAll(seedData());
+          else if (pending.kind === "example") replaceAll(pending.data);
           else replaceAll(EMPTY_DATA);
           toast.success(
-            pending.kind === "import" ? "Datos importados" : pending.kind === "seed" ? "Ejemplo cargado" : "Datos borrados",
+            pending.kind === "import" ? "Datos importados" : pending.kind === "example" ? "Ejemplo cargado" : "Datos borrados",
           );
         }}
       />
