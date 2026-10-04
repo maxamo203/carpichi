@@ -10,6 +10,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  --font-display: var(--font-fredoka);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -132,4 +133,11 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Avisos con la cabeza de Carpichi: el ícono de sonner mide 16px por defecto. */
+[data-sonner-toast] [data-icon]:has(.carpichi-toast-icon) {
+  width: 2rem;
+  height: 2rem;
+  margin-inline-end: 0.375rem;
 }

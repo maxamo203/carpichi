@@ -77,6 +77,7 @@ export default function ResumenPage() {
   return (
     <>
       <PageHeader
+        mascot="capisci"
         title="Resumen de gasto"
         description="Incluye lo consumido dentro de recetas: su gasto se reparte en los alimentos base."
         actions={<MonthPicker value={month} onChange={setMonth} />}

@@ -1,6 +1,6 @@
-# Trackeo de alimentos
+# Carpichi
 
-App para registrar alimentos (con historial de precios), armar recetas recursivas y llevar el consumo diario para estimar el gasto mensual en comida. Sin backend: todo se guarda en `localStorage` y se puede exportar/importar a un archivo JSON.
+Carpichi (carpincho + *capisci?*) es una app para registrar alimentos (con historial de precios), armar recetas recursivas y llevar el consumo diario para estimar el gasto mensual en comida. Sin backend: todo se guarda en `localStorage` y se puede exportar/importar a un archivo JSON.
 
 ## Uso
 
@@ -25,6 +25,7 @@ npm run build    # sitio estático en out/
 - `src/lib/engine.ts`: motor de cálculo puro (precios por fecha, expansión recursiva, ciclos, costos, macros, resumen, compras).
 - `src/lib/store.ts`: estado (zustand + persist) con las validaciones de cada cambio.
 - `src/lib/schema.ts`, `src/lib/io.ts`: formato y validación de export/import.
+- `src/components/carpichi/art.ts`: el dibujo de la mascota (todas las poses, la cabeza y el favicon) en un solo lugar. `carpichi.tsx` lo muestra en React y `src/app/icon.svg/route.ts` lo publica como favicon.
 - `src/lib/test-fixtures.ts`: datos fijos para los tests del motor.
 - `src/app/*`: páginas (Resumen, Consumo, Alimentos, Recetas, Compras, Datos).
 

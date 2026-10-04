@@ -27,6 +27,7 @@ export default function ComprasPage() {
   return (
     <>
       <PageHeader
+        mascot="compras"
         title="Lista de compras"
         description="Lo que necesitás para el mes completo según el estimado: lo que ya registraste más los días que faltan, repitiendo los días cargados."
         actions={<MonthPicker value={month} onChange={setMonth} />}

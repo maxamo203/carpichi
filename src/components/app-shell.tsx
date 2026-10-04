@@ -1,10 +1,11 @@
 "use client";
 
-import { MoonIcon, SunIcon, UtensilsIcon } from "lucide-react";
+import { MoonIcon, SunIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeProvider, useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
+import { CarpichiHead } from "@/components/carpichi/carpichi";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { useStore } from "@/lib/store";
@@ -53,9 +54,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2">
-          <Link href="/" className="mr-2 flex items-center gap-2 font-semibold">
-            <UtensilsIcon className="size-5 text-primary" />
-            <span className="hidden sm:inline">Trackeo de alimentos</span>
+          <Link href="/" className="mr-2 flex items-center gap-2">
+            <CarpichiHead badge className="size-8" />
+            <span className="hidden font-display text-xl font-semibold tracking-tight sm:inline">Carpichi</span>
           </Link>
           <nav className="flex flex-1 gap-1 overflow-x-auto">
             {NAV.map((item) => (
@@ -78,7 +79,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {hydrated ? children : <p className="text-sm text-muted-foreground">Cargando…</p>}
       </main>
-      <Toaster richColors position="top-center" />
+      <Toaster
+        richColors
+        position="top-center"
+        icons={{
+          success: <CarpichiHead expression="perfetto" className="carpichi-toast-icon size-8" />,
+          error: <CarpichiHead expression="ma-che" className="carpichi-toast-icon size-8" />,
+        }}
+      />
     </ThemeProvider>
   );
 }

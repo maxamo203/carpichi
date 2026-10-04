@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
+import { Carpichi, type CarpichiPose } from "@/components/carpichi/carpichi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addMonths } from "@/lib/dates";
@@ -12,16 +13,22 @@ export function PageHeader({
   title,
   description,
   actions,
+  mascot,
 }: {
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Pose de Carpichi que acompaña al título. */
+  mascot?: CarpichiPose;
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      <div className="flex min-w-0 items-end gap-3">
+        {mascot && <Carpichi pose={mascot} label={null} className="hidden size-16 sm:inline-block" />}
+        <div className="min-w-0">
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        </div>
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -124,10 +131,18 @@ export function Stat({
   );
 }
 
-export function EmptyState({ children }: { children: React.ReactNode }) {
+export function EmptyState({
+  children,
+  pose = "siesta",
+}: {
+  children: React.ReactNode;
+  /** Pose de Carpichi; por defecto durmiendo la siesta. */
+  pose?: CarpichiPose;
+}) {
   return (
-    <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-      {children}
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+      <Carpichi pose={pose} className="size-28" />
+      <div className="max-w-md">{children}</div>
     </div>
   );
 }

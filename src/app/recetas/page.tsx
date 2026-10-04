@@ -40,6 +40,7 @@ export default function RecetasPage() {
   return (
     <>
       <PageHeader
+        mascot="chef"
         title="Recetas"
         description="Combiná alimentos y otras recetas. Las recetas se registran por porción y su costo se reparte en sus ingredientes."
         actions={
@@ -50,7 +51,7 @@ export default function RecetasPage() {
       />
 
       {rows.length === 0 ? (
-        <EmptyState>
+        <EmptyState pose="chef">
           Todavía no hay recetas.{" "}
           {data.foods.length === 0 && (
             <>
